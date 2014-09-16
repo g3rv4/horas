@@ -1,0 +1,4 @@
+# Hours tracker
+This is just a personal project to help me report the time I spend working for different customers. I use TimeDoctor to track my time, but I'm going to do an effort to keep the time fetching logic independent. I also have several TimeDoctor accounts (some provided by my clients, other personal... where I use the Projects field to differentiate different customers).
+
+My customers use JIRA, but some require me to send a daily email with a report of what I'm working on and what's on my plate for the next day. Other customers require me to keep JIRA worklog updated. I fail (almost) every day at both tasks. This should take care of *everything* for me.
