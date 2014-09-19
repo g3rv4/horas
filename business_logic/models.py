@@ -6,9 +6,10 @@ db = SqliteDatabase('horas.db')
 class Company(Model):
     name = CharField()
     daily_email = CharField()
-    jira_domain = CharField(default=None)
+    jira_server = CharField(default=None)
     jira_username = CharField(default=None)
     jira_password = CharField(default=None)
+    time_tracking_plugin = CharField()
 
 
     class Meta:

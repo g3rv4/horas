@@ -1,2 +1,8 @@
+jira==0.32
+oauthlib==0.6.3
 peewee==2.3.2
+requests==2.4.1
+requests-oauthlib==0.4.1
+six==1.8.0
+tlslite==0.4.6
 wsgiref==0.1.2

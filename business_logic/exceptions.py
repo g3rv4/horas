@@ -13,3 +13,6 @@ class JiraParametersMissing(Exception):
 class CompanyNotFound(Exception):
     pass
 
+
+class InvalidPlugin(Exception):
+    pass
