@@ -6,10 +6,6 @@ class NotificationMethodMissing(Exception):
     pass
 
 
-class JiraParametersMissing(Exception):
-    pass
-
-
 class CompanyNotFound(Exception):
     pass
 
