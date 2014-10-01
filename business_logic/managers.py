@@ -1,7 +1,8 @@
 from exceptions import *
-from models import Company
+from models import Company, Task
 import importlib
-from plugins.time_tracking.base import BaseTimeTrackingPlugin
+import itertools
+from plugins.time_tracking.common import BaseTimeTrackingPlugin
 from plugins.issue_tracking.base import BaseIssueTrackingPlugin
 
 
@@ -61,9 +62,37 @@ class CompaniesMgr(object):
         return res
 
     @staticmethod
-    def get_one():
-        return Company.get(Company.id > 0)
+    def update_tasks(company_id, date, time_tracking_results):
+        """ Updates the data from the time tracking plugin into the database
 
+        :param company_id: The ID of the company
+        :type company_id: int
+        :param date: The date where all the tasks took place
+        :type date: datetime
+        :param time_tracking_results: The results from the time tracking plugin
+        :type time_tracking_results: dict
+        :return: void
+        """
+        # element to group by
+        grouping_fn = lambda x: x['description']
+
+        # sort the elements (groupby needs them sorted)
+        elements = sorted(time_tracking_results, key=grouping_fn)
+        groups = itertools.groupby(elements, grouping_fn)
+        res = [(r[0], sum([item['seconds'] for item in r[1]])) for r in groups]
+
+        company = CompaniesMgr.get_company(company_id)
+        for tt_task in res:
+            try:
+                task = company.tasks.where(Task.date == date, Task.description == tt_task[0]).get()
+            except:
+                task = Task()
+                task.company = company
+                task.date = date
+                task.description = tt_task[0]
+
+            task.time_spent_seconds = tt_task[1]
+            task.save()
 
 class PluginsManager(object):
     @staticmethod

@@ -1,4 +1,4 @@
-from base import BaseTimeTrackingPlugin
+from common import BaseTimeTrackingPlugin
 
 
 class TimeDoctorPlugin(BaseTimeTrackingPlugin):

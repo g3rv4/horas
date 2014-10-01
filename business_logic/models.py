@@ -1,4 +1,4 @@
-from peewee import SqliteDatabase, Model, CharField, ForeignKeyField, DateTimeField, IntegerField
+from peewee import SqliteDatabase, Model, CharField, ForeignKeyField, IntegerField, DateField
 import datetime
 import pickle
 
@@ -33,19 +33,11 @@ class Company(Model):
         database = db
 
 
-class ReportLine(Model):
-    ticket_number = CharField(default=None)
+class Task(Model):
+    company = ForeignKeyField(Company, related_name='tasks')
+    date = DateField()
+    description = CharField()
     time_spent_seconds = IntegerField()
 
-
     class Meta:
         database = db
-
-
-class Report(Model):
-    company = ForeignKeyField(Company, related_name='successful_executions')
-    created_at = DateTimeField(default=datetime.datetime.now)
-
-    class Meta:
-        database = db
-
