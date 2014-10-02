@@ -7,19 +7,17 @@ db = SqliteDatabase('horas.db')
 
 class Company(Model):
     name = CharField()
-    daily_email = CharField()
-    issue_tracking_plugin = CharField(null=True, default=None)
-    issue_tracking_data_str = CharField(null=True, default=None)
+    notification_plugins_str = CharField()
     time_tracking_plugin = CharField()
     time_tracking_data_str = CharField()
 
     @property
-    def issue_tracking_data(self):
-        return pickle.loads(self.issue_tracking_data_str)
+    def notification_plugins(self):
+        return pickle.loads(self.notification_plugins_str)
 
-    @issue_tracking_data.setter
-    def issue_tracking_data(self, value):
-        self.issue_tracking_data_str = pickle.dumps(value)
+    @notification_plugins.setter
+    def notification_plugins(self, value):
+        self.notification_plugins_str = pickle.dumps(value)
 
     @property
     def time_tracking_data(self):

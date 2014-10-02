@@ -3,20 +3,18 @@ from models import Company, Task
 import importlib
 import itertools
 from plugins.time_tracking.common import BaseTimeTrackingPlugin
-from plugins.issue_tracking.base import BaseIssueTrackingPlugin
+from plugins.notification.base import BaseNotificationPlugin
 
 
 class CompaniesMgr(object):
     @staticmethod
-    def create_company(name, daily_email=None, issue_tracking_plugin=None, issue_tracking_data=None,
-                       time_tracking_plugin=None, time_tracking_data=None):
+    def create_company(name, notification_plugins, time_tracking_plugin=None, time_tracking_data=None):
         """ Creates a company in the db
 
         :param name: Company name
         :type name: str
-        :param daily_email: Email where the daily email will be sent to
-        :type daily_email: str
-
+        :param notification_plugins: List of plugins to use to notify
+        :type notification_plugins: [BaseNotificationPlugin]
         :param time_tracking_plugin: Time Tracking plugin
         :type time_tracking_plugin: str
         :return: Company ID
@@ -28,18 +26,17 @@ class CompaniesMgr(object):
             raise CompanyNameMissing()
 
         # There should be at least a notification method
-        if daily_email is None and issue_tracking_plugin is None:
+        if notification_plugins is None or len(notification_plugins) == 0:
             raise NotificationMethodMissing()
 
         # This throws an exception if the plugin doesn't exist
         PluginsManager.get_time_tracking_plugin(time_tracking_plugin, **time_tracking_data)
 
-        if issue_tracking_plugin is not None:
-            PluginsManager.get_issue_tracking_plugin(issue_tracking_plugin, **issue_tracking_data)
+        for plugin in notification_plugins:
+            PluginsManager.get_notification_plugin(plugin['notification_plugin'], **plugin['notification_data'])
 
-        company = Company(name=name, daily_email=daily_email, issue_tracking_plugin=issue_tracking_plugin,
-                          issue_tracking_data=issue_tracking_data, time_tracking_plugin=time_tracking_plugin,
-                          time_tracking_data=time_tracking_data)
+        company = Company(name=name, notification_plugins=notification_plugins,
+                          time_tracking_plugin=time_tracking_plugin, time_tracking_data=time_tracking_data)
         company.save()
 
         return company.id
@@ -94,6 +91,7 @@ class CompaniesMgr(object):
             task.time_spent_seconds = tt_task[1]
             task.save()
 
+
 class PluginsManager(object):
     @staticmethod
     def get_object(name, package, **kwargs):
@@ -126,12 +124,12 @@ class PluginsManager(object):
         PluginsManager.get_object(name, 'time_tracking', **kwargs)
 
     @staticmethod
-    def get_issue_tracking_plugin(name, **kwargs):
+    def get_notification_plugin(name, **kwargs):
         """
 
         :param name: The name (with the module name) of the plugin to use
         :param kwargs: Values to use on the plugin creation
         :return: An instance of the plugin
-        :rtype: BaseIssueTrackingPlugin
+        :rtype: BaseNotificationPlugin
         """
-        PluginsManager.get_object(name, 'issue_tracking', **kwargs)
+        PluginsManager.get_object(name, 'notification', **kwargs)

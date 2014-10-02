@@ -4,13 +4,20 @@ data = {
     'companies': [
         {
             'name': 'Acme',
-            'daily_email': 'test@test.com',
-            'issue_tracking_plugin': 'jira_plugin.JiraIssueTrackingPlugin',
-            'issue_tracking_data': {
-                'server': 'http://127.0.0.1:2990/jira',
-                'username': 'admin',
-                'password': 'admin'
-            },
+            'notification_plugins': [
+                {
+                    'notification_plugin': 'jira_plugin.JiraIssueTrackingPlugin',
+                    'notification_data': {
+                        'server': 'http://127.0.0.1:2990/jira',
+                        'username': 'admin',
+                        'password': 'admin',
+                        'ticket_regexps': [
+                            'TEST-[0-9]+',
+                            'DEV-[0-9]+'
+                        ]
+                    },
+                }
+            ],
             'time_tracking_plugin': 'test.TimeTrackingTestPlugin',
             'time_tracking_data': {
                 'responses': {

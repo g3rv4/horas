@@ -1,4 +1,4 @@
 from abc import ABCMeta
 
-class BaseIssueTrackingPlugin(object):
+class BaseNotificationPlugin(object):
     __metaclass__ = ABCMeta
