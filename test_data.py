@@ -35,7 +35,7 @@ data = {
                             'seconds': 300
                         },
                         {
-                            'description': 'DEV-1532 rewriting the commit_to_jira function',
+                            'description': 'rewriting the commit_to_jira function (as defined at DEV-1532), also affects DEV-1534',
                             'seconds': 450
                         },
                         {
@@ -49,7 +49,7 @@ data = {
                     ],
                     date(2014, 1, 2): [
                         {
-                            'description': 'DEV-1234 wrapping it up',
+                            'description': 'TEST-1 wrapping it up',
                             'seconds': 4200
                         },
                         {

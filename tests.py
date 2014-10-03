@@ -4,13 +4,15 @@ import peewee
 import sys
 import copy
 import itertools
+import re
 from test_data import data as test_data
 from abc import ABCMeta
+from jira.client import JIRA
 from playhouse.test_utils import test_database
 from business_logic.managers import *
 from business_logic.models import *
 
-test_db = peewee.SqliteDatabase('test.db')
+test_db = peewee.SqliteDatabase(':memory:')
 
 
 class TestCaseWithPeewee(unittest.TestCase):
@@ -95,13 +97,6 @@ class TestTimeTrackingData(TestCaseWithPeewee):
     def test_time_tracking_storage(self):
         for date in self.company_data['time_tracking_data']['responses']:
             time_tracking_results = self.company_data['time_tracking_data']['responses'][date]
-            # element to group by
-            grouping_fn = lambda x: x['description']
-
-            # sort the elements (groupby needs them sorted)
-            elements = sorted(time_tracking_results, key=grouping_fn)
-            groups = itertools.groupby(elements, grouping_fn)
-            res = dict([(r[0], sum([item['seconds'] for item in r[1]])) for r in groups])
 
             CompaniesMgr.update_tasks(self.company_id, date, time_tracking_results)
 
@@ -109,6 +104,8 @@ class TestTimeTrackingData(TestCaseWithPeewee):
             CompaniesMgr.update_tasks(self.company_id, date, time_tracking_results)
 
             company = CompaniesMgr.get_company(self.company_id)
+
+            res = get_aggregated_time_tracking_results(time_tracking_results)
 
             # check that all the tasks are created
             for task in company.tasks.where(Task.date == date):
@@ -135,9 +132,65 @@ class TestJiraIssueTracking(TestCaseWithPeewee):
         for date in self.company_data['time_tracking_data']['responses']:
             time_tracking_results = self.company_data['time_tracking_data']['responses'][date]
             CompaniesMgr.update_tasks(self.company_id, date, time_tracking_results)
+            CompaniesMgr.trigger_notifications(self.company_id)
+
+            # verify that the referenced tickets have the updated values
+            res = get_aggregated_time_tracking_results(time_tracking_results)
+
+            jira_plugin_conf = [conf['notification_data'] for conf in self.company_data['notification_plugins'] if
+                                conf['notification_plugin'] == 'jira_plugin.JiraIssueTrackingPlugin'][0]
+
+            jira = JIRA(jira_plugin_conf['server'],
+                        basic_auth=(jira_plugin_conf['username'], jira_plugin_conf['password']))
+
+            for key in res:
+                current_best_position = len(key)
+                current_match = None
+                for regexp in jira_plugin_conf['ticket_regexps']:
+                    match = re.search('\\b(' + regexp + ')\\b', key)
+                    if match is not None and match.start(1) < current_best_position:
+                        current_best_position = match.start(1)
+                        current_match = match.group(1)
+
+                if current_match is not None:
+                    # found a ticket!
+                    description = key
+                    success = False
+                    if current_best_position == 0:
+                        description = key[len(current_match):]
+
+                    issue = None
+                    try:
+                        issue = jira.issue(current_match)
+                    except:
+                        # if there's no ticket created, just skip it
+                        success = True
+
+                    if issue:
+                        for worklog in jira.worklogs(issue.id):
+                            created = datetime.datetime.strptime(re.sub('\\..+$', '', worklog.started),
+                                                                 '%Y-%m-%dT%H:%M:%S').date()
+                            if date == created and worklog.comment == description and worklog.timeSpentSeconds == res[
+                                key]:
+                                success = True
+
+                    self.assertTrue(success)
+
+                    print(key + ': ' + current_match)
+
 
     def test_jira_issue_tracking(self):
         pass
+
+
+def get_aggregated_time_tracking_results(results):
+    # element to group by
+    grouping_fn = lambda x: x['description']
+
+    # sort the elements (groupby needs them sorted)
+    elements = sorted(results, key=grouping_fn)
+    groups = itertools.groupby(elements, grouping_fn)
+    return dict([(r[0], sum([item['seconds'] for item in r[1]])) for r in groups])
 
 
 def main():
