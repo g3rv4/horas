@@ -13,12 +13,13 @@ from business_logic.managers import *
 from business_logic.models import *
 from dateutil.parser import parse
 import pytz
+import math
 
 # need to import all the plugins that have DB tables so that TestCaseWithPeewee's run() method loads them
 import plugins.notification.jira_plugin
-#########################################################################################################
+# ########################################################################################################
 
-test_db = peewee.SqliteDatabase('test'+datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')+'.db')
+test_db = peewee.SqliteDatabase('test' + datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S') + '.db')
 
 
 class TestCaseWithPeewee(unittest.TestCase):
@@ -32,7 +33,7 @@ class TestCaseWithPeewee(unittest.TestCase):
         model_classes = []
         for module in [m for m in sys.modules if m.startswith('plugins') or m.startswith('business_logic')]:
             model_classes += [m[1] for m in inspect.getmembers(sys.modules[module], inspect.isclass) if
-                         issubclass(m[1], peewee.Model) and m[1] != peewee.Model and m[1] not in model_classes]
+                              issubclass(m[1], peewee.Model) and m[1] != peewee.Model and m[1] not in model_classes]
         with test_database(test_db, model_classes):
             super(TestCaseWithPeewee, self).run(result)
 
@@ -196,8 +197,9 @@ class TestJiraIssueTracking(TestCaseWithPeewee):
                     if issue:
                         for worklog in jira.worklogs(issue.id):
                             created = parse(worklog.started).astimezone(company_tz).date()
-                            if date == created and worklog.comment == description and worklog.timeSpentSeconds == res[
-                                key]:
+                            # Jira reports with up to a minute of detail, so accept a difference of up to 30 seconds
+                            if date == created and worklog.comment == description and math.fabs(
+                                            worklog.timeSpentSeconds - res[key]) <= 30:
                                 success = True
 
                     self.assertTrue(success)

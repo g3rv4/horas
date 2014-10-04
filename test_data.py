@@ -81,7 +81,7 @@ data = {
                     datetime(2014, 1, 2, 10, 30, 0): [
                         {
                             'description': 'TEST-1 wrapping it up',
-                            'seconds': 4200
+                            'seconds': 4275
                         },
                         {
                             'description': 'mailchimp integration demo',
