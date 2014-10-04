@@ -8,7 +8,7 @@ from dateutil.parser import parse
 
 
 class JiraTaskUpdated(Model):
-    task = ForeignKeyField(Task)
+    task = ForeignKeyField(Task, related_name='jira_tasks_updated')
     updated_at = DateTimeField(default=datetime.datetime.utcnow)
 
     class Meta:
@@ -31,7 +31,7 @@ class JiraIssueTrackingPlugin(BaseNotificationPlugin):
 
         company_tz = pytz.timezone(company.timezone)
 
-        for task in pending_updates:
+        for task in list(pending_updates):
             # get the ticket id
             current_best_position = len(task.description)
             current_match = None
@@ -72,7 +72,11 @@ class JiraIssueTrackingPlugin(BaseNotificationPlugin):
                         self.jira.add_worklog(issue.id, timeSpentSeconds=task.time_spent_seconds, started=dt,
                                               comment=description)
 
-                    task_updated = JiraTaskUpdated()
+                    if task.jira_tasks_updated.count() == 0:
+                        task_updated = JiraTaskUpdated()
+                    else:
+                        task_updated = task.jira_tasks_updated[0]
+
                     task_updated.task = task
                     task_updated.updated_at = datetime.datetime.utcnow()
                     task_updated.save()

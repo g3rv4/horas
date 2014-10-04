@@ -117,8 +117,9 @@ class TestTimeTrackingData(TestCaseWithPeewee):
                                                       time_tracking_data=self.company_data['time_tracking_data'])
 
     def test_time_tracking_storage(self):
-        for date in self.company_data['time_tracking_data']['responses']:
-            time_tracking_results = self.company_data['time_tracking_data']['responses'][date]
+        for datet in self.company_data['time_tracking_data']['responses']:
+            date = datet.date()
+            time_tracking_results = self.company_data['time_tracking_data']['responses'][datet]
 
             CompaniesMgr.update_tasks(self.company_id, date, time_tracking_results)
 
@@ -154,8 +155,9 @@ class TestJiraIssueTracking(TestCaseWithPeewee):
 
         company_tz = pytz.timezone(self.company_data['timezone'])
 
-        for date in self.company_data['time_tracking_data']['responses']:
-            time_tracking_results = self.company_data['time_tracking_data']['responses'][date]
+        for datet in self.company_data['time_tracking_data']['responses']:
+            date = datet.date()
+            time_tracking_results = self.company_data['time_tracking_data']['responses'][datet]
             CompaniesMgr.update_tasks(self.company_id, date, time_tracking_results)
             CompaniesMgr.trigger_notifications(self.company_id)
 

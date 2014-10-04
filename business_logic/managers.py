@@ -4,6 +4,7 @@ import importlib
 import itertools
 from plugins.time_tracking.common import BaseTimeTrackingPlugin
 from plugins.notification.base import BaseNotificationPlugin
+import datetime
 
 
 class CompaniesMgr(object):
@@ -94,6 +95,7 @@ class CompaniesMgr(object):
                 task.description = tt_task[0]
 
             task.time_spent_seconds = tt_task[1]
+            task.updated_at = datetime.datetime.utcnow()
             task.save()
 
     @staticmethod

@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import datetime
 
 data = {
     'companies': [
@@ -22,7 +22,7 @@ data = {
             'time_tracking_plugin': 'test.TimeTrackingTestPlugin',
             'time_tracking_data': {
                 'responses': {
-                    date(2014, 1, 1): [
+                    datetime(2014, 1, 1, 10, 0, 0): [
                         {
                             'description': 'standup call',
                             'seconds': 2130
@@ -44,11 +44,41 @@ data = {
                             'seconds': 300
                         },
                         {
-                            'description': 'DEV-932 checking mailchimp\'s api',
+                            'description': 'TEST-1 checking mailchimp\'s api',
                             'seconds': 1200
                         }
                     ],
-                    date(2014, 1, 2): [
+                    datetime(2014, 1, 1, 17, 0, 0): [
+                        {
+                            'description': 'standup call',
+                            'seconds': 2130
+                        },
+                        {
+                            'description': 'DEV-1234 trying to understand the bug',
+                            'seconds': 600
+                        },
+                        {
+                            'description': 'DEV-1234 going through the db schema',
+                            'seconds': 300
+                        },
+                        {
+                            'description': 'rewriting the commit_to_jira function (as defined at DEV-1532), also affects DEV-1534',
+                            'seconds': 450
+                        },
+                        {
+                            'description': 'standup call',
+                            'seconds': 300
+                        },
+                        {
+                            'description': 'TEST-1 checking mailchimp\'s api',
+                            'seconds': 1200
+                        },
+                        {
+                            'description': 'TEST-1 checking mailchimp\'s api',
+                            'seconds': 600
+                        }
+                    ],
+                    datetime(2014, 1, 2, 10, 30, 0): [
                         {
                             'description': 'TEST-1 wrapping it up',
                             'seconds': 4200
