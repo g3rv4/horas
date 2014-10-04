@@ -1,4 +1,4 @@
-from peewee import SqliteDatabase, Model, CharField, ForeignKeyField, IntegerField, DateField
+from peewee import SqliteDatabase, Model, CharField, ForeignKeyField, IntegerField, DateField, DateTimeField
 import datetime
 import pickle
 
@@ -10,6 +10,8 @@ class Company(Model):
     notification_plugins_str = CharField()
     time_tracking_plugin = CharField()
     time_tracking_data_str = CharField()
+    timezone = CharField()
+    created_at = DateTimeField(default=datetime.datetime.utcnow)
 
     @property
     def notification_plugins(self):
@@ -36,6 +38,8 @@ class Task(Model):
     date = DateField()
     description = CharField()
     time_spent_seconds = IntegerField()
+    created_at = DateTimeField(default=datetime.datetime.utcnow)
+    updated_at = DateTimeField(default=datetime.datetime.utcnow)
 
     class Meta:
         database = db

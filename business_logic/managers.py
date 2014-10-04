@@ -8,13 +8,15 @@ from plugins.notification.base import BaseNotificationPlugin
 
 class CompaniesMgr(object):
     @staticmethod
-    def create_company(name, notification_plugins, time_tracking_plugin=None, time_tracking_data=None):
+    def create_company(name, notification_plugins, timezone, time_tracking_plugin=None, time_tracking_data=None):
         """ Creates a company in the db
 
         :param name: Company name
         :type name: str
         :param notification_plugins: List of plugins to use to notify
         :type notification_plugins: [BaseNotificationPlugin]
+        :param timezone: Timezone the company is in (as pytz requires it)
+        :type timezone: str
         :param time_tracking_plugin: Time Tracking plugin
         :type time_tracking_plugin: str
         :return: Company ID
@@ -24,6 +26,9 @@ class CompaniesMgr(object):
 
         if name is None:
             raise CompanyNameMissing()
+
+        if timezone is None:
+            raise TimezoneMissing()
 
         # There should be at least a notification method
         if notification_plugins is None or len(notification_plugins) == 0:
@@ -35,7 +40,7 @@ class CompaniesMgr(object):
         for plugin in notification_plugins:
             PluginsManager.get_notification_plugin(plugin['notification_plugin'], **plugin['notification_data'])
 
-        company = Company(name=name, notification_plugins=notification_plugins,
+        company = Company(name=name, notification_plugins=notification_plugins, timezone=timezone,
                           time_tracking_plugin=time_tracking_plugin, time_tracking_data=time_tracking_data)
         company.save()
 
@@ -91,6 +96,15 @@ class CompaniesMgr(object):
             task.time_spent_seconds = tt_task[1]
             task.save()
 
+    @staticmethod
+    def trigger_notifications(company_id):
+        company = CompaniesMgr.get_company(company_id)
+
+        for nplugin in company.notification_plugins:
+            plugin = PluginsManager.get_notification_plugin(nplugin['notification_plugin'],
+                                                            **nplugin['notification_data'])
+            plugin.execute_if_it_has_to(company)
+
 
 class PluginsManager(object):
     @staticmethod
@@ -121,7 +135,7 @@ class PluginsManager(object):
         :return: An instance of the plugin
         :rtype: BaseTimeTrackingPlugin
         """
-        PluginsManager.get_object(name, 'time_tracking', **kwargs)
+        return PluginsManager.get_object(name, 'time_tracking', **kwargs)
 
     @staticmethod
     def get_notification_plugin(name, **kwargs):
@@ -132,4 +146,4 @@ class PluginsManager(object):
         :return: An instance of the plugin
         :rtype: BaseNotificationPlugin
         """
-        PluginsManager.get_object(name, 'notification', **kwargs)
+        return PluginsManager.get_object(name, 'notification', **kwargs)

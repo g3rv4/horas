@@ -4,6 +4,7 @@ data = {
     'companies': [
         {
             'name': 'Acme',
+            'timezone': 'US/Pacific',  # Use a pytz timezone name
             'notification_plugins': [
                 {
                     'notification_plugin': 'jira_plugin.JiraIssueTrackingPlugin',

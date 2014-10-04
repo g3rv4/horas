@@ -11,8 +11,14 @@ from jira.client import JIRA
 from playhouse.test_utils import test_database
 from business_logic.managers import *
 from business_logic.models import *
+from dateutil.parser import parse
+import pytz
 
-test_db = peewee.SqliteDatabase(':memory:')
+# need to import all the plugins that have DB tables so that TestCaseWithPeewee's run() method loads them
+import plugins.notification.jira_plugin
+#########################################################################################################
+
+test_db = peewee.SqliteDatabase('test'+datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')+'.db')
 
 
 class TestCaseWithPeewee(unittest.TestCase):
@@ -23,8 +29,10 @@ class TestCaseWithPeewee(unittest.TestCase):
     __metaclass__ = ABCMeta
 
     def run(self, result=None):
-        model_classes = [m[1] for m in inspect.getmembers(sys.modules['business_logic.models'], inspect.isclass) if
-                         issubclass(m[1], peewee.Model) and m[1] != peewee.Model]
+        model_classes = []
+        for module in [m for m in sys.modules if m.startswith('plugins') or m.startswith('business_logic')]:
+            model_classes += [m[1] for m in inspect.getmembers(sys.modules[module], inspect.isclass) if
+                         issubclass(m[1], peewee.Model) and m[1] != peewee.Model and m[1] not in model_classes]
         with test_database(test_db, model_classes):
             super(TestCaseWithPeewee, self).run(result)
 
@@ -34,6 +42,7 @@ class TestCompanyCreation(TestCaseWithPeewee):
         for company_data in test_data['companies']:
             company_id = CompaniesMgr.create_company(name=company_data['name'],
                                                      notification_plugins=company_data['notification_plugins'],
+                                                     timezone=company_data['timezone'],
                                                      time_tracking_plugin=company_data['time_tracking_plugin'],
                                                      time_tracking_data=company_data['time_tracking_data'])
 
@@ -51,11 +60,19 @@ class TestCompanyCreation(TestCaseWithPeewee):
         company_data = test_data['companies'][0]
         self.assertRaises(CompanyNameMissing, CompaniesMgr.create_company, name=None,
                           notification_plugins=company_data['notification_plugins'],
+                          timezone=company_data['timezone'],
+                          time_tracking_plugin=company_data['time_tracking_plugin'],
+                          time_tracking_data=company_data['time_tracking_data'])
+
+        self.assertRaises(TimezoneMissing, CompaniesMgr.create_company, name=company_data['name'],
+                          notification_plugins=company_data['notification_plugins'],
+                          timezone=None,
                           time_tracking_plugin=company_data['time_tracking_plugin'],
                           time_tracking_data=company_data['time_tracking_data'])
 
         self.assertRaises(NotificationMethodMissing, CompaniesMgr.create_company, name=company_data['name'],
                           notification_plugins=None,
+                          timezone=company_data['timezone'],
                           time_tracking_plugin=company_data['time_tracking_plugin'],
                           time_tracking_data=company_data['time_tracking_data'])
 
@@ -63,16 +80,19 @@ class TestCompanyCreation(TestCaseWithPeewee):
         company_data_copied['notification_plugins'][0]['notification_plugin'] = 'InvalidPlugin'
         self.assertRaises(InvalidPlugin, CompaniesMgr.create_company, name=company_data['name'],
                           notification_plugins=company_data_copied['notification_plugins'],
+                          timezone=company_data['timezone'],
                           time_tracking_plugin=company_data['time_tracking_plugin'],
                           time_tracking_data=company_data['time_tracking_data'])
 
         self.assertRaises(InvalidPlugin, CompaniesMgr.create_company, name=company_data['name'],
                           notification_plugins=company_data['notification_plugins'],
+                          timezone=company_data['timezone'],
                           time_tracking_plugin='invalid.Plugin',
                           time_tracking_data=company_data['time_tracking_data'])
 
         self.assertRaises(Exception, CompaniesMgr.create_company, name=company_data['name'],
                           notification_plugins=company_data['notification_plugins'],
+                          timezone=company_data['timezone'],
                           time_tracking_plugin=company_data['time_tracking_plugin'],
                           time_tracking_data=None)
 
@@ -80,6 +100,7 @@ class TestCompanyCreation(TestCaseWithPeewee):
         company_data_copied['notification_plugins'][0]['notification_data'] = None
         self.assertRaises(Exception, CompaniesMgr.create_company, name=company_data['name'],
                           notification_plugins=company_data_copied['notification_plugins'],
+                          timezone=company_data['timezone'],
                           time_tracking_plugin=company_data['time_tracking_plugin'],
                           time_tracking_data=company_data['time_tracking_data'])
 
@@ -91,6 +112,7 @@ class TestTimeTrackingData(TestCaseWithPeewee):
 
         self.company_id = CompaniesMgr.create_company(name=self.company_data['name'],
                                                       notification_plugins=self.company_data['notification_plugins'],
+                                                      timezone=self.company_data['timezone'],
                                                       time_tracking_plugin=self.company_data['time_tracking_plugin'],
                                                       time_tracking_data=self.company_data['time_tracking_data'])
 
@@ -126,8 +148,11 @@ class TestJiraIssueTracking(TestCaseWithPeewee):
 
         self.company_id = CompaniesMgr.create_company(name=self.company_data['name'],
                                                       notification_plugins=self.company_data['notification_plugins'],
+                                                      timezone=self.company_data['timezone'],
                                                       time_tracking_plugin=self.company_data['time_tracking_plugin'],
                                                       time_tracking_data=self.company_data['time_tracking_data'])
+
+        company_tz = pytz.timezone(self.company_data['timezone'])
 
         for date in self.company_data['time_tracking_data']['responses']:
             time_tracking_results = self.company_data['time_tracking_data']['responses'][date]
@@ -157,7 +182,7 @@ class TestJiraIssueTracking(TestCaseWithPeewee):
                     description = key
                     success = False
                     if current_best_position == 0:
-                        description = key[len(current_match):]
+                        description = re.sub('^[^a-zA-Z0-9\\(]*', '', key[len(current_match):])
 
                     issue = None
                     try:
@@ -168,8 +193,7 @@ class TestJiraIssueTracking(TestCaseWithPeewee):
 
                     if issue:
                         for worklog in jira.worklogs(issue.id):
-                            created = datetime.datetime.strptime(re.sub('\\..+$', '', worklog.started),
-                                                                 '%Y-%m-%dT%H:%M:%S').date()
+                            created = parse(worklog.started).astimezone(company_tz).date()
                             if date == created and worklog.comment == description and worklog.timeSpentSeconds == res[
                                 key]:
                                 success = True

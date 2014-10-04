@@ -6,6 +6,10 @@ class NotificationMethodMissing(Exception):
     pass
 
 
+class TimezoneMissing(Exception):
+    pass
+
+
 class CompanyNotFound(Exception):
     pass
 

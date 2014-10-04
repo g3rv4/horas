@@ -1,25 +1,19 @@
 from abc import ABCMeta, abstractmethod
-
+from business_logic.models import Task, Company
+import datetime
 
 class BaseTimeTrackingPlugin(object):
     __metaclass__ = ABCMeta
 
     @abstractmethod
-    def get_daily_report(self, date):
+    def update_tasks_since(self, company, date):
+        """ Updates all the tasks since the given date for the given company
+
+        :param company: The company to update
+        :type company: Company
+        :param date: The date to start checking the times
+        :type date: datetime.date
+        :return: List of the tasks updated
+        :rtype: [Task]
+        """
         pass
-
-
-class DailyReport(object):
-    def __init__(self, date):
-        self.date = date
-        self.tasks = []
-
-    @property
-    def total_in_seconds(self):
-        return sum([t.time_in_seconds for t in self.tasks])
-
-
-class Task(object):
-    def __init__(self, description, time_in_seconds):
-        self.description = description
-        self.time_in_seconds = time_in_seconds
